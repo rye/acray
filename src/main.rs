@@ -10,6 +10,12 @@ struct Ray {
 
 struct Triangle(Point, Point, Point);
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct HitRecord {
+	time: f32,
+	point: Point,
+}
+
 impl Ray {
 	pub fn at(&self, t: f32) -> Vec3 {
 		self.origin + t * self.direction
@@ -65,7 +71,7 @@ impl core::ops::Add<Vec3> for Vec3 {
 ///
 /// This algorithm uses a fair amount of computation to perform its
 /// task of finding the intersection point.
-fn intersect(ray: Ray, tri: Triangle) -> Option<(f32, Vec3)> {
+fn intersect(ray: Ray, tri: Triangle) -> Option<HitRecord> {
 	let ab: Vec3 = tri.1 - tri.0;
 	let ac: Vec3 = tri.2 - tri.0;
 
@@ -93,7 +99,10 @@ fn intersect(ray: Ray, tri: Triangle) -> Option<(f32, Vec3)> {
 
 	let t = f * ac.dot(q);
 
-	Some((t, ray.at(t)))
+	Some(HitRecord {
+		time: t,
+		point: ray.at(t),
+	})
 }
 
 #[test]
@@ -109,7 +118,13 @@ fn intersect_correct() {
 		Vec3(2_f32, -1_f32, -1_f32),
 	);
 
-	assert_eq!(intersect(ray, triangle), Some((2_f32, Vec3(2_f32, 0_f32, 0_f32))));
+	assert_eq!(
+		intersect(ray, triangle),
+		Some(HitRecord {
+			time: 2_f32,
+			point: Vec3(2_f32, 0_f32, 0_f32)
+		})
+	);
 }
 
 fn main() {

@@ -122,12 +122,30 @@ fn intersect_correct_triangle() {
 		Vec3(2_f32, -1_f32, -1_f32),
 	);
 
-	let expected_hit_record: Hit = Hit {
+	let expected_hit_record = Some(Hit {
 		time: 2_f32,
 		point: Vec3(2_f32, 0_f32, 0_f32),
+	});
+
+	assert_eq!(ray.intersect(triangle), expected_hit_record);
+}
+
+#[test]
+fn intersect_correct_triangle_no_intersection() {
+	let ray: Ray = Ray {
+		origin: Vec3(0_f32, 1_f32, 1_f32),
+		direction: Vec3(1_f32, 0_f32, 0_f32),
 	};
 
-	assert_eq!(ray.intersect(triangle), Some(expected_hit_record));
+	let triangle: Triangle<Vec3> = Triangle(
+		Vec3(2_f32, 0_f32, 0_f32),
+		Vec3(2_f32, 1_f32, 0_f32),
+		Vec3(2_f32, 0_f32, 1_f32),
+	);
+
+	let expected_hit_record = None;
+
+	assert_eq!(ray.intersect(triangle), expected_hit_record);
 }
 
 #[test]
@@ -142,7 +160,7 @@ fn intersect_correct_sphere() {
 		radius: 1_f32,
 	};
 
-	let expected_intersections: Vec<Hit> = vec![
+	let expected_intersections = Some(vec![
 		Hit {
 			time: 1_f32,
 			point: Vec3(1_f32, 0_f32, 0_f32),
@@ -151,9 +169,9 @@ fn intersect_correct_sphere() {
 			time: 3_f32,
 			point: Vec3(3_f32, 0_f32, 0_f32),
 		},
-	];
+	]);
 
-	assert_eq!(ray.intersect(sphere), Some(expected_intersections))
+	assert_eq!(ray.intersect(sphere), expected_intersections)
 }
 
 #[test]
@@ -168,10 +186,28 @@ fn intersect_correct_sphere_tangent() {
 		radius: 1_f32,
 	};
 
-	let expected_intersections: Vec<Hit> = vec![Hit {
+	let expected_intersections = Some(vec![Hit {
 		time: 2_f32,
 		point: Vec3(2_f32, 1_f32, 0_f32),
-	}];
+	}]);
 
-	assert_eq!(ray.intersect(sphere), Some(expected_intersections))
+	assert_eq!(ray.intersect(sphere), expected_intersections)
+}
+
+
+#[test]
+fn intersect_correct_sphere_no_intersection() {
+	let ray: Ray = Ray {
+		origin: Vec3(0_f32, 2_f32, 0_f32),
+		direction: Vec3(1_f32, 0_f32, 0_f32),
+	};
+
+	let sphere: Sphere = Sphere {
+		origin: Vec3(2_f32, 0_f32, 0_f32),
+		radius: 1_f32,
+	};
+
+	let expected_intersections = None;
+
+	assert_eq!(ray.intersect(sphere), expected_intersections)
 }

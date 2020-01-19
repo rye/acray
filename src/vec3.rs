@@ -47,6 +47,14 @@ impl Mul<Vec3> for f32 {
 	}
 }
 
+impl Mul<f32> for Vec3 {
+	type Output = Vec3;
+
+	fn mul(self, scalar: f32) -> Self::Output {
+		Vec3(scalar * self.0, scalar * self.1, scalar * self.2)
+	}
+}
+
 impl Add<Vec3> for Vec3 {
 	type Output = Vec3;
 

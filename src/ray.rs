@@ -19,6 +19,7 @@ impl Ray {
 
 impl Intersect<Triangle<Vec3>> for Ray {
 	type Record = Hit;
+
 	/// An implementation of the Möller-Trumbore Ray-Triangle Intersection
 	/// algorithm.
 	///
@@ -62,7 +63,7 @@ impl Intersect<Triangle<Vec3>> for Ray {
 }
 
 #[test]
-fn intersect_correct() {
+fn intersect_correct_triangle() {
 	let ray: Ray = Ray {
 		origin: Vec3(0_f32, 0_f32, 0_f32),
 		direction: Vec3(1_f32, 0_f32, 0_f32),

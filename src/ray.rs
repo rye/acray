@@ -8,8 +8,8 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Ray {
-	pub origin: Vec3,
-	pub direction: Vec3,
+	pub(crate) origin: Vec3,
+	pub(crate) direction: Vec3,
 }
 
 impl Ray {

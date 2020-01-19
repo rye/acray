@@ -1,4 +1,4 @@
-use musac::{Ray, Triangle, Vec3};
+use musac::{Intersect, Ray, Triangle, Vec3};
 
 fn main() {
 	let ray = Ray {

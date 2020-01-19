@@ -16,6 +16,10 @@ impl Ray {
 	pub fn at(&self, t: f32) -> Vec3 {
 		self.origin + t * self.direction
 	}
+
+	pub fn new(origin: Vec3, direction: Vec3) -> Self {
+		Self { origin, direction }
+	}
 }
 
 impl Intersect<Triangle<Vec3>> for Ray {

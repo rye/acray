@@ -1,4 +1,4 @@
-use crate::{intersect::Intersectable, vec3::Vec3};
+use crate::{vec3::Vec3};
 
 pub struct Sphere {
 	pub(crate) origin: Vec3,
@@ -10,5 +10,3 @@ impl Sphere {
 		Self { origin, radius }
 	}
 }
-
-impl Intersectable for Sphere {}

@@ -17,7 +17,7 @@ pub struct Ray {
 
 impl Ray {
 	pub fn at(&self, t: f32) -> Vec3 {
-		self.origin + (t - self.t_offset) * self.direction
+		self.origin + t * self.direction
 	}
 
 	pub fn new(origin: Vec3, direction: Vec3) -> Self {
@@ -29,10 +29,7 @@ impl Ray {
 	}
 }
 
-impl<T> Intersect<T> for Ray
-where
-	T: Borrow<Triangle<Vec3>>
-{
+impl Intersect<&Triangle<Vec3>> for Ray {
 	type Record = Hit;
 
 	/// An implementation of the Möller-Trumbore Ray-Triangle Intersection
@@ -40,8 +37,7 @@ where
 	///
 	/// This algorithm uses a fair amount of computation to perform its task of
 	/// finding the intersection point.
-	fn intersect(&self, tri: T) -> Option<Hit> {
-		let tri: &Triangle<Vec3> = tri.borrow();
+	fn intersect(&self, tri: &Triangle<Vec3>) -> Option<Hit> {
 		let ab: Vec3 = tri.1 - tri.0;
 		let ac: Vec3 = tri.2 - tri.0;
 
@@ -73,19 +69,19 @@ where
 
 		let normal: Vec3 = ac.cross(ab);
 
-		let unit_normal: Option<Vec3> = Some(normal / normal.mag());
+		let unit_normal: Vec3 = normal / normal.mag();
 
 		Some(Hit {
-			time: t,
+			time: t + self.t_offset,
 			point: self.at(t),
 			unit_normal,
 		})
 	}
 }
 
-impl Intersect<Sphere> for Ray {
+impl Intersect<&Sphere> for Ray {
 	type Record = Vec<Hit>;
-	fn intersect(&self, sphere: Sphere) -> Option<Self::Record> {
+	fn intersect(&self, sphere: &Sphere) -> Option<Self::Record> {
 		use core::f32::EPSILON;
 
 		let oc: Vec3 = sphere.origin - self.origin;
@@ -108,9 +104,9 @@ impl Intersect<Sphere> for Ray {
 				let n: Vec3 = p - sphere.origin;
 
 				vec![Hit {
-					time: t,
+					time: t + self.t_offset,
 					point: self.at(t),
-					unit_normal: Some(n / n.mag()),
+					unit_normal: n / n.mag(),
 				}]
 			}
 			_ => {
@@ -125,14 +121,14 @@ impl Intersect<Sphere> for Ray {
 
 				vec![
 					Hit {
-						time: t0,
+						time: t0 + self.t_offset,
 						point: p0,
-						unit_normal: Some(n0 / n0.mag()),
+						unit_normal: n0 / n0.mag(),
 					},
 					Hit {
-						time: t1,
+						time: t1 + self.t_offset,
 						point: p1,
-						unit_normal: Some(-(n1 / n1.mag())),
+						unit_normal: -(n1 / n1.mag()),
 					},
 				]
 			}

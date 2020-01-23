@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 
-use log::{error, debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 
 use crate::{
-	intersect::{Hit, Intersect, Intersectable},
+	intersect::{Hit, Intersect},
+	products::DotProduct,
 	ray::Ray,
 	sphere::Sphere,
 	triangle::Triangle,
@@ -33,9 +34,6 @@ pub struct Object {
 	transmittance: f32,
 	absorbance: f32,
 }
-
-impl Intersectable for Object {}
-impl Intersectable for Receiver {}
 
 impl Object {
 	pub fn new(
@@ -153,22 +151,28 @@ impl Scene {
 		trace!("Beginning simulation...");
 
 		// First, emitters emit sound
-		let sounds: Vec<Sound> = self.emitters().iter().map(|emitter| -> Vec<Sound> {
-			debug!("Emitter {:?} emitting...", emitter);
+		let sounds: Vec<Sound> = self
+			.emitters()
+			.iter()
+			.map(|emitter| -> Vec<Sound> {
+				debug!("Emitter {:?} emitting...", emitter);
 
-			let sounds_to_emit: usize = emitter.sounds_per_tick;
+				let sounds_to_emit: usize = emitter.sounds_per_tick;
 
-			(0..sounds_to_emit).map(|n: usize| {
-				trace!("  Emitting sound {}", n);
-				Sound {
-					ray: Ray::new(emitter.origin,
-						Vec3(0_f32, 0_f32, 0_f32)
-					),
-					trace: vec![],
-				}
-			}).collect()
-		}).flatten().collect();
+				(0..sounds_to_emit)
+					.map(|n: usize| {
+						trace!("  Emitting sound {}", n);
+						Sound {
+							ray: Ray::new(emitter.origin, Vec3(1_f32, 0_f32, 0_f32)),
+							trace: vec![],
+						}
+					})
+					.collect()
+			})
+			.flatten()
+			.collect();
 
+		let mut time = 0_f32;
 		let mut sounds = sounds;
 
 		loop {
@@ -178,24 +182,74 @@ impl Scene {
 				break;
 			}
 
-			sounds.iter_mut().for_each(|sound: &mut Sound| {
-				let object_hits: BTreeSet<Option<Hit>> = self.objects.iter().map(|object: &Object| -> Vec<Option<Hit>> {
-					object.geometry.iter().map(|tri: &Triangle<Vec3>| -> Option<Hit> {
-						sound.ray.intersect(tri)
-					}).collect()
-				}).flatten().collect();
+			sounds = sounds
+				.iter()
+				.map(|sound: &Sound| -> Option<Sound> {
+					let object_hits: BTreeSet<Option<Hit>> = self
+						.objects
+						.iter()
+						.map(|object: &Object| -> Vec<Option<Hit>> {
+							object
+								.geometry
+								.iter()
+								.map(|tri: &Triangle<Vec3>| -> Option<Hit> { sound.ray.intersect(tri) })
+								.collect()
+						})
+						.flatten()
+						.collect();
 
-				let receiver_hits: BTreeSet<Option<Hit>> = self.receivers.iter().map(|receiver: &Receiver| -> Vec<Option<Hit>> {
-					vec![None]
-				}).flatten().collect();
+					let receiver_hits: BTreeSet<Option<Hit>> = self
+						.receivers
+						.iter()
+						.map(|receiver: &Receiver| -> Option<Vec<Hit>> {
+							match receiver {
+								Receiver::Spherical(sphere) => sound.ray.intersect(sphere),
+							}
+						})
+						.flatten()
+						.flatten()
+						.map(|k| Some(k))
+						.collect();
 
-				debug!("  Object hits: {:?}", object_hits);
-				debug!("Receiver hits: {:?}", receiver_hits);
+					// debug!("  Object hits: {:?}", object_hits);
+					// debug!("Receiver hits: {:?}", receiver_hits);
 
-				// object_hits.iter().chain(receiver_hits.iter()).map(Clone::clone).collect()
-			});
+					let earliest_hit: Option<Hit> = object_hits
+						.union(&receiver_hits)
+						.filter_map(|hit: &Option<Hit>| -> Option<Hit> {
+							hit.filter(|hit: &Hit| hit.time > sound.ray.t_offset)
+						})
+						.collect::<Vec<Hit>>()
+						.first()
+						.cloned();
 
-			trace!("End of tick.");
+					debug!("Earliest hit: {:?}", earliest_hit);
+
+					earliest_hit.map(|hit: Hit| -> Sound {
+						let direction: Vec3 = sound.ray.direction
+							- 2_f32 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
+						let origin: Vec3 = hit.point;
+						let t_offset: f32 = hit.time;
+
+						let new_ray: Ray = Ray {
+							direction,
+							origin,
+							t_offset,
+						};
+
+						time = hit.time;
+
+						Sound {
+							ray: new_ray,
+							// TODO fix -- add trace
+							trace: sound.trace.clone(),
+						}
+					})
+				})
+				.filter_map(|x| x)
+				.collect();
+
+			trace!("End of tick, still have {} sounds", sounds.len());
 		}
 
 		// Emitters emit sounds

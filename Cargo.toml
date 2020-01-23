@@ -1,7 +1,8 @@
 [package]
-name = "musac"
+name = "acray"
 version = "0.1.0"
 authors = ["Kristofer Rye <kristofer.rye@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+rand = "~0.7.3"

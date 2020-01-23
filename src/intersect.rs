@@ -6,6 +6,8 @@ pub struct Hit {
 	pub point: Vec3,
 }
 
+pub trait Intersectable {}
+
 pub trait Intersect<Intersectable> {
 	type Record;
 	fn intersect(&self, other: Intersectable) -> Option<Self::Record>;

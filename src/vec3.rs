@@ -1,5 +1,5 @@
 use core::borrow::Borrow;
-use core::ops::{Add, Mul, Sub};
+use core::ops::{Add, Div, DivAssign, Mul, Sub};
 
 use crate::products::{CrossProduct, DotProduct};
 
@@ -29,6 +29,28 @@ impl Vec3 {
 	pub fn mag(&self) -> f32 {
 		(self.0.powi(2) as f32 + self.1.powi(2) as f32 + self.2.powi(2) as f32).sqrt()
 	}
+
+	pub fn from_components_with_mag(components: (f32, f32, f32), magnitude: f32) -> Self {
+		let unit: Vec3 = Vec3(components.0, components.1, components.2);
+		let unit = unit / unit.mag();
+		unit * magnitude
+	}
+}
+
+impl Add<Vec3> for Vec3 {
+	type Output = Vec3;
+
+	fn add(self, vec: Vec3) -> Self::Output {
+		Vec3(self.0 + vec.0, self.1 + vec.1, self.2 + vec.2)
+	}
+}
+
+impl Div<f32> for Vec3 {
+	type Output = Vec3;
+
+	fn div(self, scalar: f32) -> Self::Output {
+		Vec3(self.0 / scalar, self.1 / scalar, self.2 / scalar)
+	}
 }
 
 impl Sub<Vec3> for Vec3 {
@@ -55,10 +77,10 @@ impl Mul<f32> for Vec3 {
 	}
 }
 
-impl Add<Vec3> for Vec3 {
-	type Output = Vec3;
-
-	fn add(self, vec: Vec3) -> Self::Output {
-		Vec3(self.0 + vec.0, self.1 + vec.1, self.2 + vec.2)
+impl DivAssign<f32> for Vec3 {
+	fn div_assign(&mut self, scalar: f32) {
+		self.0 /= scalar;
+		self.1 /= scalar;
+		self.2 /= scalar;
 	}
 }

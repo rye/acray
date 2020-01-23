@@ -1,3 +1,5 @@
+use core::borrow::Borrow;
+
 use crate::{
 	intersect::{Hit, Intersect},
 	products::{CrossProduct, DotProduct},
@@ -27,7 +29,10 @@ impl Ray {
 	}
 }
 
-impl Intersect<Triangle<Vec3>> for Ray {
+impl<T> Intersect<T> for Ray
+where
+	T: Borrow<Triangle<Vec3>>
+{
 	type Record = Hit;
 
 	/// An implementation of the Möller-Trumbore Ray-Triangle Intersection
@@ -35,7 +40,8 @@ impl Intersect<Triangle<Vec3>> for Ray {
 	///
 	/// This algorithm uses a fair amount of computation to perform its task of
 	/// finding the intersection point.
-	fn intersect(&self, tri: Triangle<Vec3>) -> Option<Hit> {
+	fn intersect(&self, tri: T) -> Option<Hit> {
+		let tri: &Triangle<Vec3> = tri.borrow();
 		let ab: Vec3 = tri.1 - tri.0;
 		let ac: Vec3 = tri.2 - tri.0;
 

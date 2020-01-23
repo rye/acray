@@ -1,3 +1,7 @@
+use std::collections::BTreeSet;
+
+use log::{error, debug, info, trace, warn};
+
 use crate::{
 	intersect::{Hit, Intersect, Intersectable},
 	ray::Ray,
@@ -16,7 +20,6 @@ pub struct Scene {
 #[derive(Debug, PartialEq)]
 pub struct Emitter {
 	pub origin: Vec3,
-	pub data: Vec<f32>,
 	pub sounds_per_tick: usize,
 }
 
@@ -30,6 +33,9 @@ pub struct Object {
 	transmittance: f32,
 	absorbance: f32,
 }
+
+impl Intersectable for Object {}
+impl Intersectable for Receiver {}
 
 impl Object {
 	pub fn new(
@@ -106,9 +112,7 @@ pub type Trace = Vec<Hit>;
 
 pub struct Sound {
 	ray: Ray,
-	origin_time: f32,
 	trace: Trace,
-	data: Vec<f32>,
 }
 
 impl Scene {
@@ -131,23 +135,67 @@ impl Scene {
 		self
 	}
 
+	pub fn sound(mut self, sound: Sound) {
+		self.sounds.push(sound);
+	}
+
 	pub fn emitters(&self) -> &Vec<Emitter> {
 		&self.emitters
 	}
 
-	pub fn receive(&mut self) -> Vec<Vec<f32>> {
-		loop {
-			self.emitters().iter().for_each(|emitter| {
-				println!("Emitter {:?} emitting...", emitter);
+	pub fn sounds(&self) -> &Vec<Sound> {
+		&self.sounds
+	}
 
-				let sounds_to_emit: usize = emitter.sounds_per_tick;
+	pub fn simulate(&mut self) -> Vec<Vec<f32>> {
+		const SPEED_OF_SOUND: f32 = 344_f32;
 
-				for i in 0..sounds_to_emit {
-					println!("Emitting sound {}", i);
+		trace!("Beginning simulation...");
+
+		// First, emitters emit sound
+		let sounds: Vec<Sound> = self.emitters().iter().map(|emitter| -> Vec<Sound> {
+			debug!("Emitter {:?} emitting...", emitter);
+
+			let sounds_to_emit: usize = emitter.sounds_per_tick;
+
+			(0..sounds_to_emit).map(|n: usize| {
+				trace!("  Emitting sound {}", n);
+				Sound {
+					ray: Ray::new(emitter.origin,
+						Vec3(0_f32, 0_f32, 0_f32)
+					),
+					trace: vec![],
 				}
+			}).collect()
+		}).flatten().collect();
+
+		let mut sounds = sounds;
+
+		loop {
+			trace!("Start of tick");
+
+			if sounds.len() == 0 {
+				break;
+			}
+
+			sounds.iter_mut().for_each(|sound: &mut Sound| {
+				let object_hits: BTreeSet<Option<Hit>> = self.objects.iter().map(|object: &Object| -> Vec<Option<Hit>> {
+					object.geometry.iter().map(|tri: &Triangle<Vec3>| -> Option<Hit> {
+						sound.ray.intersect(tri)
+					}).collect()
+				}).flatten().collect();
+
+				let receiver_hits: BTreeSet<Option<Hit>> = self.receivers.iter().map(|receiver: &Receiver| -> Vec<Option<Hit>> {
+					vec![None]
+				}).flatten().collect();
+
+				debug!("  Object hits: {:?}", object_hits);
+				debug!("Receiver hits: {:?}", receiver_hits);
+
+				// object_hits.iter().chain(receiver_hits.iter()).map(Clone::clone).collect()
 			});
 
-			break;
+			trace!("End of tick.");
 		}
 
 		// Emitters emit sounds

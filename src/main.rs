@@ -4,9 +4,11 @@ use acray::{
 };
 
 fn main() {
+	#[cfg(feature = "simple_logger")]
+	simple_logger::init().unwrap();
+
 	let emitter: Emitter = Emitter {
 		origin: Vec3(1.0, 0.0, 0.0),
-		data: vec![0_f32, 1_f32, 0_f32, -1_f32],
 		sounds_per_tick: 100,
 	};
 
@@ -31,7 +33,7 @@ fn main() {
 
 	println!("Starting simulation...");
 
-	let results: Vec<Vec<f32>> = scene.receive();
+	let results: Vec<Vec<f32>> = scene.simulate();
 
 	println!("Simulation complete!");
 }

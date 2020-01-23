@@ -7,9 +7,6 @@ fn main() {
 	let emitter: Emitter = Emitter {
 		origin: Vec3(1.0, 0.0, 0.0),
 		data: vec![0_f32, 1_f32, 0_f32, -1_f32],
-		start_time: 0.0_f32,
-		end_time: 1.0_f32,
-		tick_length: 1.0_f32,
 		sounds_per_tick: 100,
 	};
 

@@ -17,9 +17,6 @@ pub struct Scene {
 pub struct Emitter {
 	pub origin: Vec3,
 	pub data: Vec<f32>,
-	pub start_time: f32,
-	pub end_time: f32,
-	pub tick_length: f32,
 	pub sounds_per_tick: usize,
 }
 
@@ -139,22 +136,16 @@ impl Scene {
 	}
 
 	pub fn receive(&mut self) -> Vec<Vec<f32>> {
-		let mut time: f32 = 0.0_f32;
-
 		loop {
-			self
-				.emitters()
-				.iter()
-				.filter(|emitter| emitter.start_time <= time && emitter.end_time >= time)
-				.for_each(|emitter| {
-					println!("Emitter {:?} emitting...", emitter);
+			self.emitters().iter().for_each(|emitter| {
+				println!("Emitter {:?} emitting...", emitter);
 
-					let sounds_to_emit: usize = emitter.sounds_per_tick;
+				let sounds_to_emit: usize = emitter.sounds_per_tick;
 
-					for i in 0..sounds_to_emit {
-						println!("Emitting sound {}", i);
-					}
-				});
+				for i in 0..sounds_to_emit {
+					println!("Emitting sound {}", i);
+				}
+			});
 
 			break;
 		}

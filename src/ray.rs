@@ -6,19 +6,24 @@ use crate::{
 	vec3::Vec3,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray {
 	pub(crate) origin: Vec3,
 	pub(crate) direction: Vec3,
+	pub(crate) t_offset: f32,
 }
 
 impl Ray {
 	pub fn at(&self, t: f32) -> Vec3 {
-		self.origin + t * self.direction
+		self.origin + (t - self.t_offset) * self.direction
 	}
 
 	pub fn new(origin: Vec3, direction: Vec3) -> Self {
-		Self { origin, direction }
+		Self {
+			origin,
+			direction,
+			t_offset: 0.0_f32,
+		}
 	}
 }
 
@@ -60,9 +65,14 @@ impl Intersect<Triangle<Vec3>> for Ray {
 
 		let t = f * ac.dot(qvec);
 
+		let normal: Vec3 = ac.cross(ab);
+
+		let unit_normal: Option<Vec3> = Some(normal / normal.mag());
+
 		Some(Hit {
 			time: t,
 			point: self.at(t),
+			unit_normal,
 		})
 	}
 }
@@ -87,23 +97,36 @@ impl Intersect<Sphere> for Ray {
 			thc if (-EPSILON..=EPSILON).contains(&thc) => {
 				let t: f32 = tca;
 
+				let p: Vec3 = self.at(t);
+
+				let n: Vec3 = p - sphere.origin;
+
 				vec![Hit {
 					time: t,
 					point: self.at(t),
+					unit_normal: Some(n / n.mag()),
 				}]
 			}
 			_ => {
 				let t0: f32 = tca - thc;
 				let t1: f32 = tca + thc;
 
+				let p0: Vec3 = self.at(t0);
+				let p1: Vec3 = self.at(t1);
+
+				let n0: Vec3 = p0 - sphere.origin;
+				let n1: Vec3 = p1 - sphere.origin;
+
 				vec![
 					Hit {
 						time: t0,
-						point: self.at(t0),
+						point: p0,
+						unit_normal: Some(n0 / n0.mag()),
 					},
 					Hit {
 						time: t1,
-						point: self.at(t1),
+						point: p1,
+						unit_normal: Some(-(n1 / n1.mag())),
 					},
 				]
 			}

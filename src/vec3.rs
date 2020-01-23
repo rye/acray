@@ -1,5 +1,5 @@
 use core::borrow::Borrow;
-use core::ops::{Add, Div, DivAssign, Mul, Sub};
+use core::ops::{Add, Div, DivAssign, Mul, Neg, Sub};
 
 use crate::products::{CrossProduct, DotProduct};
 
@@ -34,6 +34,14 @@ impl Vec3 {
 		let unit: Vec3 = Vec3(components.0, components.1, components.2);
 		let unit = unit / unit.mag();
 		unit * magnitude
+	}
+}
+
+impl Neg for Vec3 {
+	type Output = Vec3;
+
+	fn neg(self) -> Self::Output {
+		Vec3(-self.0, -self.1, -self.2)
 	}
 }
 

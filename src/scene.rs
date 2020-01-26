@@ -178,7 +178,7 @@ impl Scene {
 		loop {
 			trace!("Start of tick");
 
-			if sounds.len() == 0 {
+			if sounds.is_empty() {
 				break;
 			}
 

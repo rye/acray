@@ -31,22 +31,16 @@ pub enum Receiver {
 pub struct Object {
 	geometry: Vec<Triangle<Vec3>>,
 	reflectance: f32,
-	transmittance: f32,
-	absorbance: f32,
 }
 
 impl Object {
 	pub fn new(
 		geometry: Vec<Triangle<Vec3>>,
 		reflectance: f32,
-		transmittance: f32,
-		absorbance: f32,
 	) -> Self {
 		Self {
 			geometry,
 			reflectance,
-			transmittance,
-			absorbance,
 		}
 	}
 }

@@ -208,7 +208,7 @@ impl Scene {
 						})
 						.flatten()
 						.flatten()
-						.map(|k| Some(k))
+						.map(Some)
 						.collect();
 
 					// debug!("  Object hits: {:?}", object_hits);

@@ -14,7 +14,7 @@ fn main() {
 
 	let receiver: Receiver = Receiver::Spherical(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));
 
-	let wall: Object = Object::new(
+	let front_wall: Object = Object::new(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(10.0_f32, -5_f32, -5_f32),
 			Vec3(10.0_f32, -5_f32, 5_f32),
@@ -26,10 +26,76 @@ fn main() {
 		0_f32,
 	);
 
+	let back_wall: Object = Object::new(
+		build_geometry_from_triangle_fan(vec![
+			Vec3(-10.0_f32, -5_f32, -5_f32),
+			Vec3(-10.0_f32, -5_f32, 5_f32),
+			Vec3(-10.0_f32, 5_f32, 5_f32),
+			Vec3(-10.0_f32, 5_f32, -5_f32),
+		]),
+		0.8_f32,
+		0_f32,
+		0_f32,
+	);
+
+	let top_wall: Object = Object::new(
+		build_geometry_from_triangle_fan(vec![
+			Vec3(-10.0_f32, -5_f32, 5_f32),
+			Vec3(10.0_f32, -5_f32, 5_f32),
+			Vec3(10.0_f32, 5_f32, 5_f32),
+			Vec3(-10.0_f32, 5_f32, 5_f32),
+		]),
+		0.8_f32,
+		0_f32,
+		0_f32,
+	);
+
+	let bottom_wall: Object = Object::new(
+		build_geometry_from_triangle_fan(vec![
+			Vec3(-10.0_f32, -5_f32, -5_f32),
+			Vec3(10.0_f32, -5_f32, -5_f32),
+			Vec3(10.0_f32, 5_f32, -5_f32),
+			Vec3(-10.0_f32, 5_f32, -5_f32),
+		]),
+		0.8_f32,
+		0_f32,
+		0_f32,
+	);
+
+	let left_wall: Object = Object::new(
+		build_geometry_from_triangle_fan(vec![
+			Vec3(-10.0_f32, -5_f32, 5_f32),
+			Vec3(10.0_f32, -5_f32, 5_f32),
+			Vec3(10.0_f32, -5_f32, -5_f32),
+			Vec3(-10.0_f32, -5_f32, -5_f32),
+		]),
+		0.8_f32,
+		0_f32,
+		0_f32,
+	);
+
+	let right_wall: Object = Object::new(
+		build_geometry_from_triangle_fan(vec![
+			Vec3(-10.0_f32, 5_f32, 5_f32),
+			Vec3(10.0_f32, 5_f32, 5_f32),
+			Vec3(10.0_f32, 5_f32, -5_f32),
+			Vec3(-10.0_f32, 5_f32, -5_f32),
+		]),
+		0.8_f32,
+		0_f32,
+		0_f32,
+	);
+
+
 	let mut scene: Scene = Scene::new()
 		.emitter(emitter)
 		.receiver(receiver)
-		.object(wall);
+		.object(front_wall)
+		.object(back_wall)
+		.object(top_wall)
+		.object(bottom_wall)
+		.object(left_wall)
+		.object(right_wall);
 
 	println!("Starting simulation...");
 

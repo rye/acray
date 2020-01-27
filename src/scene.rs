@@ -16,7 +16,6 @@ pub struct Scene {
 	objects: Vec<Object>,
 	emitters: Vec<Emitter>,
 	sounds: Vec<Sound>,
-	receivers: Vec<Receiver>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -25,25 +24,30 @@ pub struct Emitter {
 	pub sounds_per_tick: usize,
 }
 
-pub enum Receiver {
-	Spherical(Sphere),
-}
-
-pub struct Object {
-	geometry: Vec<Triangle<Vec3>>,
-	reflectance: f32,
+pub enum Object {
+	Reflector {
+		geometry: Vec<Triangle<Vec3>>,
+		reflectance: f32,
+	},
+	Receiver {
+		geometry: Sphere,
+	},
 }
 
 impl Object {
-	pub fn new(geometry: Vec<Triangle<Vec3>>, reflectance: f32) -> Self {
-		Self {
+	pub fn reflector(geometry: Vec<Triangle<Vec3>>, reflectance: f32) -> Self {
+		Self::Reflector {
 			geometry,
 			reflectance,
 		}
 	}
+
+	pub fn receiver(geometry: Sphere) -> Self {
+		Self::Receiver { geometry }
+	}
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Interaction {
 	ReceiverHit { hit: Hit, amplitude: f32 },
 	ObjectHit { hit: Hit, reflectance: f32 },
@@ -160,11 +164,6 @@ impl Scene {
 		self
 	}
 
-	pub fn receiver(mut self, receiver: Receiver) -> Scene {
-		self.receivers.push(receiver);
-		self
-	}
-
 	pub fn object(mut self, object: Object) -> Scene {
 		self.objects.push(object);
 		self
@@ -188,7 +187,7 @@ impl Scene {
 
 		const SPEED_OF_SOUND: f32 = 344_f32;
 
-		let mut hits: Vec<(Hit, f32)> = vec![];
+		let mut receiver_hits: Vec<(Hit, f32)> = vec![];
 
 		trace!("Beginning simulation...");
 
@@ -230,52 +229,93 @@ impl Scene {
 			sounds = sounds
 				.iter()
 				.map(|sound: &Sound| -> Option<Sound> {
-					let object_hits: BTreeSet<Option<Interaction>> = self
+					let hits: BTreeSet<Interaction> = self
 						.objects
 						.iter()
-						.map(|object: &Object| -> Vec<Option<Interaction>> {
-							object
-								.geometry
-								.iter()
-								.map(|tri: &Triangle<Vec3>| -> Option<Interaction> {
-									sound
-										.ray
-										.intersect(tri)
-										.map(|hit: Hit| Interaction::ObjectHit {
-											hit,
-											reflectance: object.reflectance,
-										})
-								})
-								.collect()
-						})
-						.flatten()
-						.collect();
-
-					let receiver_hits: BTreeSet<Option<Interaction>> = self
-						.receivers
-						.iter()
-						.map(|receiver: &Receiver| -> Option<Vec<Interaction>> {
-							match receiver {
-								Receiver::Spherical(sphere) => sound.ray.intersect(sphere).map(|hits: Vec<Hit>| {
-									hits
+						.map(|object| -> Option<Interaction> {
+							match object {
+								Object::Reflector {
+									geometry,
+									reflectance,
+								} => {
+									let set: BTreeSet<Interaction> = geometry
 										.iter()
-										.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit, amplitude: sound.amplitude })
-										.collect()
-								}),
+										.map(|tri| -> Option<Interaction> {
+											sound.ray.intersect(tri).map(|hit| Interaction::ObjectHit {
+												hit,
+												reflectance: *reflectance,
+											})
+										})
+										.filter_map(|x| x)
+										.collect();
+
+									set.iter().take(1).next().cloned()
+								}
+
+								Object::Receiver { geometry } => {
+									let set: BTreeSet<Interaction> = sound
+										.ray
+										.intersect(geometry)
+										.unwrap_or(vec![])
+										.iter()
+										.map(|hit| Interaction::ReceiverHit {
+											hit: *hit,
+											amplitude: sound.amplitude,
+										})
+										.collect();
+
+									set.iter().take(1).next().cloned()
+								}
 							}
 						})
 						.flatten()
-						.flatten()
-						.map(Some)
 						.collect();
 
-					let earliest_hit = object_hits
-						.union(&receiver_hits)
+					// let object_hits: BTreeSet<Option<Interaction>> = self
+					// 	.objects
+					// 	.iter()
+					// 	.map(|object: &Object| -> Vec<Option<Interaction>> {
+					// 		object
+					// 			.geometry
+					// 			.iter()
+					// 			.map(|tri: &Triangle<Vec3>| -> Option<Interaction> {
+					// 				sound
+					// 					.ray
+					// 					.intersect(tri)
+					// 					.map(|hit: Hit| Interaction::ObjectHit {
+					// 						hit,
+					// 						reflectance: object.reflectance,
+					// 					})
+					// 			})
+					// 			.collect()
+					// 	})
+					// 	.flatten()
+					// 	.collect();
+
+					// let receiver_hits: BTreeSet<Option<Interaction>> = self
+					// 	.receivers
+					// 	.iter()
+					// 	.map(|receiver: &Receiver| -> Option<Vec<Interaction>> {
+					// 		match receiver {
+					// 			Receiver::Spherical(sphere) => sound.ray.intersect(sphere).map(|hits: Vec<Hit>| {
+					// 				hits
+					// 					.iter()
+					// 					.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit, amplitude: sound.amplitude })
+					// 					.collect()
+					// 			}),
+					// 		}
+					// 	})
+					// 	.flatten()
+					// 	.flatten()
+					// 	.map(Some)
+					// 	.collect();
+
+					let earliest_hit = hits
+						.iter()
 						.filter(|hit| -> bool {
 							match hit {
-								Some(Interaction::ObjectHit { hit, .. }) => hit.time > sound.ray.t_offset,
-								Some(Interaction::ReceiverHit { hit, .. }) => hit.time > sound.ray.t_offset,
-								None => false,
+								Interaction::ObjectHit { hit, .. } => hit.time > sound.ray.t_offset,
+								Interaction::ReceiverHit { hit, .. } => hit.time > sound.ray.t_offset,
 							}
 						})
 						.take(1)
@@ -284,7 +324,7 @@ impl Scene {
 					earliest_hit
 						.map(|interaction| -> Option<Sound> {
 							match interaction {
-								Some(Interaction::ObjectHit { hit, reflectance }) => {
+								Interaction::ObjectHit { hit, reflectance } => {
 									let direction: Vec3 = sound.ray.direction
 										- 2_f32 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
 									let origin: Vec3 = hit.point;
@@ -309,11 +349,10 @@ impl Scene {
 										None
 									}
 								}
-								Some(Interaction::ReceiverHit { hit, amplitude }) => {
-									hits.push((*hit, *amplitude));
+								Interaction::ReceiverHit { hit, amplitude } => {
+									receiver_hits.push((*hit, *amplitude));
 									None
 								}
-								None => None,
 							}
 						})
 						.flatten()
@@ -324,7 +363,7 @@ impl Scene {
 			trace!("End of tick, still have {} sounds", sounds.len());
 		}
 
-		hits
+		receiver_hits
 	}
 }
 
@@ -334,7 +373,6 @@ impl Default for Scene {
 			objects: Vec::default(),
 			emitters: Vec::default(),
 			sounds: Vec::default(),
-			receivers: Vec::default(),
 		}
 	}
 }

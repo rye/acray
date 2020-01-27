@@ -1,10 +1,6 @@
-use acray::{
-	build_geometry_from_triangle_fan, Emitter, Hit, Object, Receiver, Scene, Sphere, Vec3,
-};
+use acray::{build_geometry_from_triangle_fan, Emitter, Hit, Object, Scene, Sphere, Vec3};
 
 use std::fs::File;
-use std::io;
-use std::io::prelude::*;
 
 fn main() {
 	#[cfg(feature = "simple_logger")]
@@ -15,9 +11,9 @@ fn main() {
 		sounds_per_tick: 100000,
 	};
 
-	let receiver: Receiver = Receiver::Spherical(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));
+	let receiver: Object = Object::receiver(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));
 
-	let front_wall: Object = Object::new(
+	let front_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(10.0_f32, -5_f32, -5_f32),
 			Vec3(10.0_f32, -5_f32, 5_f32),
@@ -27,7 +23,7 @@ fn main() {
 		0.8_f32,
 	);
 
-	let back_wall: Object = Object::new(
+	let back_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(-10.0_f32, -5_f32, -5_f32),
 			Vec3(-10.0_f32, -5_f32, 5_f32),
@@ -37,7 +33,7 @@ fn main() {
 		0.8_f32,
 	);
 
-	let top_wall: Object = Object::new(
+	let top_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(-10.0_f32, -5_f32, 5_f32),
 			Vec3(10.0_f32, -5_f32, 5_f32),
@@ -47,7 +43,7 @@ fn main() {
 		0.8_f32,
 	);
 
-	let bottom_wall: Object = Object::new(
+	let bottom_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(-10.0_f32, -5_f32, -5_f32),
 			Vec3(10.0_f32, -5_f32, -5_f32),
@@ -57,7 +53,7 @@ fn main() {
 		0.8_f32,
 	);
 
-	let left_wall: Object = Object::new(
+	let left_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(-10.0_f32, -5_f32, 5_f32),
 			Vec3(10.0_f32, -5_f32, 5_f32),
@@ -67,7 +63,7 @@ fn main() {
 		0.8_f32,
 	);
 
-	let right_wall: Object = Object::new(
+	let right_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
 			Vec3(-10.0_f32, 5_f32, 5_f32),
 			Vec3(10.0_f32, 5_f32, 5_f32),
@@ -79,7 +75,7 @@ fn main() {
 
 	let mut scene: Scene = Scene::new()
 		.emitter(emitter)
-		.receiver(receiver)
+		.object(receiver)
 		.object(front_wall)
 		.object(back_wall)
 		.object(top_wall)
@@ -90,7 +86,7 @@ fn main() {
 	println!("Starting simulation...");
 
 	let results: Vec<(Hit, f32)> = scene.simulate();
-	let mut file: File = File::create("results.csv").expect("Failed to open results.csv");
+	let file: File = File::create("results.csv").expect("Failed to open results.csv");
 
 	let mut writer = csv::Writer::from_writer(file);
 

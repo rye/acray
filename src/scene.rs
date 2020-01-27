@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+#[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
 use crate::{

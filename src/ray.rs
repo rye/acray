@@ -1,5 +1,3 @@
-use core::borrow::Borrow;
-
 use crate::{
 	intersect::{Hit, Intersect},
 	products::{CrossProduct, DotProduct},

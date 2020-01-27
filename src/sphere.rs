@@ -1,4 +1,4 @@
-use crate::{vec3::Vec3};
+use crate::vec3::Vec3;
 
 pub struct Sphere {
 	pub(crate) origin: Vec3,

@@ -8,7 +8,7 @@ fn main() {
 
 	let emitter: Emitter = Emitter {
 		origin: Vec3(1.0, 0.0, 0.0),
-		sounds_per_tick: 100000,
+		sounds_per_tick: 1_000_000,
 	};
 
 	let receiver: Object = Object::receiver(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));

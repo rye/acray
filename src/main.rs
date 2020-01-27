@@ -1,8 +1,10 @@
-use acray::{build_geometry_from_triangle_fan, Emitter, Hit, Object, Receiver, Scene, Sphere, Vec3};
+use acray::{
+	build_geometry_from_triangle_fan, Emitter, Hit, Object, Receiver, Scene, Sphere, Vec3,
+};
 
-use std::io::prelude::*;
-use std::io;
 use std::fs::File;
+use std::io;
+use std::io::prelude::*;
 
 fn main() {
 	#[cfg(feature = "simple_logger")]
@@ -92,12 +94,14 @@ fn main() {
 
 	let mut writer = csv::Writer::from_writer(file);
 
-	writer.write_record(&["time", "amplitude"]).expect("Failed to write headers");
+	writer
+		.write_record(&["time", "amplitude"])
+		.expect("Failed to write headers");
 
 	for (hit, amplitude) in results {
-		println!("{},{}", hit.time, amplitude);
-
-		writer.write_record(&[hit.time.to_string(), amplitude.to_string()]).expect("Failed to write record");
+		writer
+			.write_record(&[hit.time.to_string(), amplitude.to_string()])
+			.expect("Failed to write record");
 	}
 
 	writer.flush().expect("Failed to flush the writer");

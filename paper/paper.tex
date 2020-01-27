@@ -1,0 +1,167 @@
+\documentclass[10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+\usepackage[english]{babel}
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{amsmath,amssymb}
+
+\usepackage{wrapfig}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\usepackage[citestyle=numeric]{biblatex}
+
+\title{Simulating Acoustics with Ray-Tracing in Rust}
+\author{Kristofer Rye}
+
+\addbibresource{bibliography.bib}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  Ray tracing, a common method used in computer graphics to produce
+  photo-realistic images, has natural applications to the study of acoustics.
+  Sound moving through space can be modeled through particles which represent
+  the wavefront as it moves through space, and sufficient numbers of particles
+  can produce a well-resolved profile of received sound that is emitted from
+  that point.  We implement a primitive simulation system to approximate the
+  acoustics of a modeled space and examine its resulting characteristics.
+\end{abstract}
+
+\section{Introduction}
+
+Ray tracing is a common method used in the field of computer graphics to
+simulate the motion of light through space, and is commonly used to produce
+photo-realistic images.  The idea of ray tracing in computer graphics originally
+came from the problem of computing the projection of shadows, \cite{Appel1968}
+but developed in both accuracy and speed after it was popularized through its
+use in computer graphics.  Originally conceived in the field of optics
+\cite{Spencer62}, ray tracing eventually reached popularity in cases where it
+was practical.  Ray tracing has also seen use in physics research settings,
+especially for modeling the propagation of seismic waves, radio signals, and
+underwater sound.
+
+A few things about sound make ray tracing particularly useful in the modeling of
+acoustics.  First, since sound in air moves at a velocity far less than that of
+light, this means its motion through the space can be accurately approximated
+with particles moving at non-relativistic speeds.
+
+Rust is a programming language of rising prominence with a stated goal of
+``empowering everyone to build reliable and efficient software.'' \cite{Rust}
+Rust was selected for this project because of a few key distinguishing factors.
+These include Rust's exceptional memory safety guarantees, the inherent
+fearlessness of concurrency of Rust code, and the fact that Rust can be compiled
+both to native machine code (on x86\_64 and similar devices) as well as
+WebAssembly, which allows it to be embedded within the browser rather cleanly.
+
+In addition, Rust's type system, specifically its rich support for generic
+functions and generic types, means that all of the algorithms with which we are
+concerned can be implemented for all types that support the underlying operation
+generics.  As a lucid example, this means that the same implementation of our
+triangle intersection algorithm can work in both two and three dimensions, as it
+makes use of the dot product which is well-defined in both dimensions.
+
+\section{Algorithms}
+
+The system we developed allows for the measurement of the acoustics of a modeled
+space with a specifiable level of detail.  Wavefronts are approximated as
+particles carrying frequency and amplitude data, and are emitted
+omni-directionally (uniformly distributed, and randomly) within the space, and
+objects are modeled as either spheres (with a given origin and radius) or
+collections of triangles.
+
+\begin{wrapfigure}{o}{0.5\textwidth}
+  \begin{minipage}{0.5\textwidth}
+    \begin{algorithm}[H]
+      \caption{The simulation structure}
+      \label{simalg}
+      \scriptsize
+      \begin{algorithmic}
+        \STATE Objects $\gets$ [room geometry]
+        \STATE Objects $\gets$ [receivers]
+
+        \FOR {emitter $\in$ Emitters}
+        \STATE Sounds $\gets$ emitter.emit
+        \ENDFOR
+
+        \REPEAT
+
+        \FOR {sound $\in$ Sounds}
+        \STATE I $\gets$ []
+        \FOR {object $\in$ Objects}
+        \STATE I $\gets$ sound.hit?(object)
+        \ENDFOR
+
+        \STATE hit $\gets$ I.first
+
+        \IF{hit.object is a Receiver \OR $\text{sound.amplitude} * \text{hit.reflectance} < \epsilon$}
+        \STATE hit.object.hits $\gets$ hit
+        \STATE Sounds.delete(hit.sound)
+        \ELSE
+        \STATE hit.sound.bounce(hit.object)
+        \ENDIF
+
+        \ENDFOR
+
+        \UNTIL{Sounds $= \varnothing$}
+      \end{algorithmic}
+    \end{algorithm}
+  \end{minipage}
+\end{wrapfigure}
+
+Our simulation consists of a loop (Algorithm \ref{simalg}) that continues
+endlessly until all sounds emitted at the start of the simulation have either
+been received or would be imperceptibly weak by the receiver.  For each
+iteration through the simulation loop, every sound ray is checked against every
+object in the scene for an intersection (``hit''), and the intersection results
+are stored in a container which automatically sorts the stored sounds in
+ascending order by time, such as a binary tree.  As a result, the time
+complexity of checking every sound with every object has time complexity
+$\mathcal{O}(m \cdot n)$ where $m$ denotes the number of sounds and $n$ denotes
+the number of objects.  The claim that this worst-case time complexity is the
+best possible without advanced techniques needs verification, but hopefully
+intuitively makes sense.
+
+The algorithms for identifying intersections of sound (approximated by rays) and
+surfaces (approximated by triangles and spheres) are taken from relevant
+literature sources.  Notably, we use the fast and lightweight algorithm
+presented by M\"oller and Trumbore in \cite{raytrialgo}, which can be used not
+only to determine \emph{whether} a given ray intersects with a triangle, but
+also \emph{exactly where}, and \emph{at exactly what time}, both of which are
+relevant to our simulation.  The ray-sphere intersection was derived using
+Wolfram Mathematica to generate a parameterized form of the sphere equation with
+one parameter (time), and this was then translated into code.  Since a ray can
+intersect with a sphere at exactly zero, one, or two points, the intersection
+returns both points and the earlier time is selected.  Unit normal vectors are
+generated in both intersection algorithms and are used by the scene simulator to
+compute in what direction the outgoing ray moves.
+
+One limitation of our system is that it assumes perfectly elastic collisions
+with un-movable surroundings, and---perhaps more significantly---that sound
+exclusively bounces at a lower amplitude when it interacts with a surrounding.
+In reality, a wavefront interacts with the actual materials of the wall on a
+highly detailed basis, and the level of detail required proves to be
+impractical.  Instead, our system requires that entire surfaces (groups of
+triangles) are approximated with a single coefficient representing how much of
+the sound they reflect, and as additional detail is needed, additional surfaces
+must be added.  Furthermore, we assume exactly one medium with one speed of
+sound, which is not wholly realistic.  A given space could have varying speeds
+of sound in different areas as factors like lighting induce thermal differences
+and air currents.  The difference in sound profile is assumed to be negligible,
+but in practice might be somewhat significant.
+
+An alternative or more primitive approach to implementation would have rays
+stepping forward an arbitrarily small amount, checking for bounces off each
+object at each time step, and moving in accordance with a \emph{computed} speed
+of sound, rather than a constant speed of sound.
+
+\section{Results}
+
+\section{Conclusion}
+
+\printbibliography
+
+\end{document}

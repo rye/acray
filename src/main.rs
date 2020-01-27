@@ -1,7 +1,4 @@
-use acray::{
-	build_geometry_from_triangle_fan, Emitter, Intersect, Object, Ray, Receiver, Scene, Sphere,
-	Triangle, Vec3,
-};
+use acray::{build_geometry_from_triangle_fan, Emitter, Object, Receiver, Scene, Sphere, Vec3};
 
 fn main() {
 	#[cfg(feature = "simple_logger")]

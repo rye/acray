@@ -11,66 +11,66 @@ fn main() {
 		sounds_per_tick: 1_000_000,
 	};
 
-	let receiver: Object = Object::receiver(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));
+	let receiver: Object = Object::receiver(Sphere::new(Vec3(0_f64, 0_f64, 0_f64), 0.1_f64));
 
 	let front_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(10.0_f32, -5_f32, -5_f32),
-			Vec3(10.0_f32, -5_f32, 5_f32),
-			Vec3(10.0_f32, 5_f32, 5_f32),
-			Vec3(10.0_f32, 5_f32, -5_f32),
+			Vec3(10.0_f64, -5_f64, -5_f64),
+			Vec3(10.0_f64, -5_f64, 5_f64),
+			Vec3(10.0_f64, 5_f64, 5_f64),
+			Vec3(10.0_f64, 5_f64, -5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let back_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(-10.0_f32, -5_f32, -5_f32),
-			Vec3(-10.0_f32, -5_f32, 5_f32),
-			Vec3(-10.0_f32, 5_f32, 5_f32),
-			Vec3(-10.0_f32, 5_f32, -5_f32),
+			Vec3(-10.0_f64, -5_f64, -5_f64),
+			Vec3(-10.0_f64, -5_f64, 5_f64),
+			Vec3(-10.0_f64, 5_f64, 5_f64),
+			Vec3(-10.0_f64, 5_f64, -5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let top_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(-10.0_f32, -5_f32, 5_f32),
-			Vec3(10.0_f32, -5_f32, 5_f32),
-			Vec3(10.0_f32, 5_f32, 5_f32),
-			Vec3(-10.0_f32, 5_f32, 5_f32),
+			Vec3(-10.0_f64, -5_f64, 5_f64),
+			Vec3(10.0_f64, -5_f64, 5_f64),
+			Vec3(10.0_f64, 5_f64, 5_f64),
+			Vec3(-10.0_f64, 5_f64, 5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let bottom_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(-10.0_f32, -5_f32, -5_f32),
-			Vec3(10.0_f32, -5_f32, -5_f32),
-			Vec3(10.0_f32, 5_f32, -5_f32),
-			Vec3(-10.0_f32, 5_f32, -5_f32),
+			Vec3(-10.0_f64, -5_f64, -5_f64),
+			Vec3(10.0_f64, -5_f64, -5_f64),
+			Vec3(10.0_f64, 5_f64, -5_f64),
+			Vec3(-10.0_f64, 5_f64, -5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let left_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(-10.0_f32, -5_f32, 5_f32),
-			Vec3(10.0_f32, -5_f32, 5_f32),
-			Vec3(10.0_f32, -5_f32, -5_f32),
-			Vec3(-10.0_f32, -5_f32, -5_f32),
+			Vec3(-10.0_f64, -5_f64, 5_f64),
+			Vec3(10.0_f64, -5_f64, 5_f64),
+			Vec3(10.0_f64, -5_f64, -5_f64),
+			Vec3(-10.0_f64, -5_f64, -5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let right_wall: Object = Object::reflector(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(-10.0_f32, 5_f32, 5_f32),
-			Vec3(10.0_f32, 5_f32, 5_f32),
-			Vec3(10.0_f32, 5_f32, -5_f32),
-			Vec3(-10.0_f32, 5_f32, -5_f32),
+			Vec3(-10.0_f64, 5_f64, 5_f64),
+			Vec3(10.0_f64, 5_f64, 5_f64),
+			Vec3(10.0_f64, 5_f64, -5_f64),
+			Vec3(-10.0_f64, 5_f64, -5_f64),
 		]),
-		0.8_f32,
+		0.8_f64,
 	);
 
 	let mut scene: Scene = Scene::new()
@@ -85,7 +85,7 @@ fn main() {
 
 	println!("Starting simulation...");
 
-	let results: Vec<(Hit, f32)> = scene.simulate();
+	let results: Vec<(Hit, f64)> = scene.simulate();
 	let file: File = File::create("results.csv").expect("Failed to open results.csv");
 
 	let mut writer = csv::Writer::from_writer(file);

@@ -10,11 +10,11 @@ use crate::{
 pub struct Ray {
 	pub(crate) origin: Vec3,
 	pub(crate) direction: Vec3,
-	pub(crate) t_offset: f32,
+	pub(crate) t_offset: f64,
 }
 
 impl Ray {
-	pub fn at(&self, t: f32) -> Vec3 {
+	pub fn at(&self, t: f64) -> Vec3 {
 		self.origin + t * self.direction
 	}
 
@@ -22,7 +22,7 @@ impl Ray {
 		Self {
 			origin,
 			direction,
-			t_offset: 0.0_f32,
+			t_offset: 0.0_f64,
 		}
 	}
 }
@@ -42,11 +42,11 @@ impl Intersect<&Triangle<Vec3>> for Ray {
 		let norm: Vec3 = self.direction.cross(ac);
 		let angle = ab.dot(norm);
 
-		if angle > -core::f32::EPSILON && angle < core::f32::EPSILON {
+		if angle > -core::f64::EPSILON && angle < core::f64::EPSILON {
 			return None;
 		}
 
-		let f: f32 = 1.0 / angle;
+		let f: f64 = 1.0 / angle;
 		let offset: Vec3 = self.origin - tri.0;
 
 		let u = f * offset.dot(norm);
@@ -78,22 +78,22 @@ impl Intersect<&Triangle<Vec3>> for Ray {
 impl Intersect<&Sphere> for Ray {
 	type Record = Vec<Hit>;
 	fn intersect(&self, sphere: &Sphere) -> Option<Self::Record> {
-		use core::f32::EPSILON;
+		use core::f64::EPSILON;
 
 		let oc: Vec3 = sphere.origin - self.origin;
-		let tca: f32 = oc.dot(self.direction);
-		let d2: f32 = oc.dot(oc) - tca * tca;
-		let radius2: f32 = sphere.radius.powi(2);
+		let tca: f64 = oc.dot(self.direction);
+		let d2: f64 = oc.dot(oc) - tca * tca;
+		let radius2: f64 = sphere.radius.powi(2);
 
 		if d2 > radius2 {
 			return None;
 		}
 
-		let thc: f32 = (radius2 - d2).sqrt();
+		let thc: f64 = (radius2 - d2).sqrt();
 
 		let record: Vec<Hit> = match thc {
 			thc if (-EPSILON..=EPSILON).contains(&thc) => {
-				let time: f32 = tca + self.t_offset;
+				let time: f64 = tca + self.t_offset;
 
 				let point: Vec3 = self.at(tca);
 
@@ -106,8 +106,8 @@ impl Intersect<&Sphere> for Ray {
 				}]
 			}
 			_ => {
-				let t0: f32 = tca - thc;
-				let t1: f32 = tca + thc;
+				let t0: f64 = tca - thc;
+				let t1: f64 = tca + thc;
 
 				let p0: Vec3 = self.at(t0);
 				let p1: Vec3 = self.at(t1);

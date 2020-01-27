@@ -27,7 +27,7 @@ pub struct Emitter {
 pub enum Object {
 	Reflector {
 		geometry: Vec<Triangle<Vec3>>,
-		reflectance: f32,
+		reflectance: f64,
 	},
 	Receiver {
 		geometry: Sphere,
@@ -35,7 +35,7 @@ pub enum Object {
 }
 
 impl Object {
-	pub fn reflector(geometry: Vec<Triangle<Vec3>>, reflectance: f32) -> Self {
+	pub fn reflector(geometry: Vec<Triangle<Vec3>>, reflectance: f64) -> Self {
 		Self::Reflector {
 			geometry,
 			reflectance,
@@ -49,8 +49,8 @@ impl Object {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Interaction {
-	ReceiverHit { hit: Hit, intensity: f32 },
-	ObjectHit { hit: Hit, reflectance: f32 },
+	ReceiverHit { hit: Hit, intensity: f64 },
+	ObjectHit { hit: Hit, reflectance: f64 },
 }
 
 use core::cmp::Ordering;
@@ -112,14 +112,14 @@ pub fn build_geometry_from_triangle_fan(points: Vec<Vec3>) -> Vec<Triangle<Vec3>
 fn triangle_fan_three_points() {
 	assert_eq!(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(0_f32, 0_f32, 0_f32),
-			Vec3(0_f32, 1_f32, 0_f32),
-			Vec3(1_f32, 1_f32, 0_f32)
+			Vec3(0_f64, 0_f64, 0_f64),
+			Vec3(0_f64, 1_f64, 0_f64),
+			Vec3(1_f64, 1_f64, 0_f64)
 		]),
 		vec![Triangle(
-			Vec3(0_f32, 0_f32, 0_f32),
-			Vec3(0_f32, 1_f32, 0_f32),
-			Vec3(1_f32, 1_f32, 0_f32)
+			Vec3(0_f64, 0_f64, 0_f64),
+			Vec3(0_f64, 1_f64, 0_f64),
+			Vec3(1_f64, 1_f64, 0_f64)
 		)]
 	)
 }
@@ -128,21 +128,21 @@ fn triangle_fan_three_points() {
 fn triangle_fan_four_points_two_triangles() {
 	assert_eq!(
 		build_geometry_from_triangle_fan(vec![
-			Vec3(0_f32, 0_f32, 0_f32),
-			Vec3(0_f32, 1_f32, 0_f32),
-			Vec3(1_f32, 1_f32, 0_f32),
-			Vec3(1_f32, 0_f32, 0_f32)
+			Vec3(0_f64, 0_f64, 0_f64),
+			Vec3(0_f64, 1_f64, 0_f64),
+			Vec3(1_f64, 1_f64, 0_f64),
+			Vec3(1_f64, 0_f64, 0_f64)
 		]),
 		vec![
 			Triangle(
-				Vec3(0_f32, 0_f32, 0_f32),
-				Vec3(0_f32, 1_f32, 0_f32),
-				Vec3(1_f32, 1_f32, 0_f32)
+				Vec3(0_f64, 0_f64, 0_f64),
+				Vec3(0_f64, 1_f64, 0_f64),
+				Vec3(1_f64, 1_f64, 0_f64)
 			),
 			Triangle(
-				Vec3(0_f32, 0_f32, 0_f32),
-				Vec3(1_f32, 1_f32, 0_f32),
-				Vec3(1_f32, 0_f32, 0_f32)
+				Vec3(0_f64, 0_f64, 0_f64),
+				Vec3(1_f64, 1_f64, 0_f64),
+				Vec3(1_f64, 0_f64, 0_f64)
 			)
 		]
 	)
@@ -150,7 +150,7 @@ fn triangle_fan_four_points_two_triangles() {
 
 pub struct Sound {
 	ray: Ray,
-	intensity: f32,
+	intensity: f64,
 }
 
 impl Scene {
@@ -180,13 +180,13 @@ impl Scene {
 		&self.sounds
 	}
 
-	pub fn simulate(&mut self) -> Vec<(Hit, f32)> {
+	pub fn simulate(&mut self) -> Vec<(Hit, f64)> {
 		use rand::Rng;
 		let mut rng = rand::thread_rng();
 
-		const SPEED_OF_SOUND: f32 = 344_f32;
+		const SPEED_OF_SOUND: f64 = 344_f64;
 
-		let mut receiver_hits: Vec<(Hit, f32)> = vec![];
+		let mut receiver_hits: Vec<(Hit, f64)> = vec![];
 
 		info!("Beginning simulation...");
 
@@ -206,7 +206,7 @@ impl Scene {
 
 						Sound {
 							ray: Ray::new(emitter.origin, direction),
-							intensity: 1_f32,
+							intensity: 1_f64,
 						}
 					})
 					.collect()
@@ -214,7 +214,7 @@ impl Scene {
 			.flatten()
 			.collect();
 
-		let mut time = 0_f32;
+		let mut time = 0_f64;
 		let mut sounds = sounds;
 
 		loop {
@@ -278,9 +278,9 @@ impl Scene {
 							match interaction {
 								Interaction::ObjectHit { hit, reflectance } => {
 									let direction: Vec3 = sound.ray.direction
-										- 2_f32 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
+										- 2_f64 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
 									let origin: Vec3 = hit.point;
-									let t_offset: f32 = hit.time;
+									let t_offset: f64 = hit.time;
 
 									let new_ray: Ray = Ray {
 										direction,
@@ -290,7 +290,7 @@ impl Scene {
 
 									time = hit.time;
 
-									let new_amplitude: f32 = sound.intensity * reflectance;
+									let new_amplitude: f64 = sound.intensity * reflectance;
 									if new_amplitude >= 0.000_000_000_001 {
 										Some(Sound {
 											ray: new_ray,

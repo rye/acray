@@ -2,7 +2,7 @@ use crate::vec3::Vec3;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Hit {
-	pub time: f32,
+	pub time: f64,
 	pub point: Vec3,
 	pub unit_normal: Vec3,
 }

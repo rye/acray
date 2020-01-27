@@ -49,7 +49,7 @@ impl Object {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Interaction {
-	ReceiverHit { hit: Hit, amplitude: f32 },
+	ReceiverHit { hit: Hit, intensity: f32 },
 	ObjectHit { hit: Hit, reflectance: f32 },
 }
 
@@ -150,8 +150,7 @@ fn triangle_fan_four_points_two_triangles() {
 
 pub struct Sound {
 	ray: Ray,
-	frequency: f32,
-	amplitude: f32,
+	intensity: f32,
 }
 
 impl Scene {
@@ -207,8 +206,7 @@ impl Scene {
 
 						Sound {
 							ray: Ray::new(emitter.origin, direction),
-							frequency: rng.gen_range(0_f32, 2000_f32),
-							amplitude: 1_f32,
+							intensity: 1_f32,
 						}
 					})
 					.collect()
@@ -260,7 +258,7 @@ impl Scene {
 										.iter()
 										.map(|hit| Interaction::ReceiverHit {
 											hit: *hit,
-											amplitude: sound.amplitude,
+											intensity: sound.intensity,
 										})
 										.collect();
 
@@ -338,19 +336,18 @@ impl Scene {
 
 									time = hit.time;
 
-									let new_amplitude: f32 = sound.amplitude * reflectance;
-									if new_amplitude >= 0.000001 {
+									let new_amplitude: f32 = sound.intensity * reflectance;
+									if new_amplitude >= 0.000_000_000_001 {
 										Some(Sound {
 											ray: new_ray,
-											frequency: sound.frequency,
-											amplitude: new_amplitude,
+											intensity: new_amplitude,
 										})
 									} else {
 										None
 									}
 								}
-								Interaction::ReceiverHit { hit, amplitude } => {
-									receiver_hits.push((*hit, *amplitude));
+								Interaction::ReceiverHit { hit, intensity } => {
+									receiver_hits.push((*hit, *intensity));
 									None
 								}
 							}

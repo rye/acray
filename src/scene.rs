@@ -230,13 +230,13 @@ impl Scene {
 					let hits: BTreeSet<Interaction> = self
 						.objects
 						.iter()
-						.map(|object| -> Option<Interaction> {
+						.map(|object| -> BTreeSet<Interaction> {
 							match object {
 								Object::Reflector {
 									geometry,
 									reflectance,
 								} => {
-									let set: BTreeSet<Interaction> = geometry
+									geometry
 										.iter()
 										.map(|tri| -> Option<Interaction> {
 											sound.ray.intersect(tri).map(|hit| Interaction::ObjectHit {
@@ -245,13 +245,11 @@ impl Scene {
 											})
 										})
 										.filter_map(|x| x)
-										.collect();
-
-									set.iter().take(1).next().cloned()
+										.collect()
 								}
 
 								Object::Receiver { geometry } => {
-									let set: BTreeSet<Interaction> = sound
+									sound
 										.ray
 										.intersect(geometry)
 										.unwrap_or(vec![])
@@ -260,25 +258,20 @@ impl Scene {
 											hit: *hit,
 											intensity: sound.intensity,
 										})
-										.collect();
-
-									set.iter().take(1).next().cloned()
+										.collect()
 								}
 							}
 						})
 						.flatten()
-						.collect();
-
-					let earliest_hit = hits
-						.iter()
 						.filter(|hit| -> bool {
 							match hit {
 								Interaction::ObjectHit { hit, .. } => hit.time > sound.ray.t_offset,
 								Interaction::ReceiverHit { hit, .. } => hit.time > sound.ray.t_offset,
 							}
 						})
-						.take(1)
-						.next();
+						.collect();
+
+					let earliest_hit = hits.iter().nth(0);
 
 					earliest_hit
 						.map(|interaction| -> Option<Sound> {

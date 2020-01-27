@@ -31,9 +31,12 @@ impl Vec3 {
 	}
 
 	pub fn from_components_with_mag(components: (f32, f32, f32), magnitude: f32) -> Self {
-		let unit: Vec3 = Vec3(components.0, components.1, components.2);
-		let unit = unit / unit.mag();
+		let unit: Vec3 = Vec3(components.0, components.1, components.2).unit();
 		unit * magnitude
+	}
+
+	pub fn unit(self) -> Self {
+		self / self.mag()
 	}
 }
 

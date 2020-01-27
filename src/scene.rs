@@ -269,45 +269,6 @@ impl Scene {
 						.flatten()
 						.collect();
 
-					// let object_hits: BTreeSet<Option<Interaction>> = self
-					// 	.objects
-					// 	.iter()
-					// 	.map(|object: &Object| -> Vec<Option<Interaction>> {
-					// 		object
-					// 			.geometry
-					// 			.iter()
-					// 			.map(|tri: &Triangle<Vec3>| -> Option<Interaction> {
-					// 				sound
-					// 					.ray
-					// 					.intersect(tri)
-					// 					.map(|hit: Hit| Interaction::ObjectHit {
-					// 						hit,
-					// 						reflectance: object.reflectance,
-					// 					})
-					// 			})
-					// 			.collect()
-					// 	})
-					// 	.flatten()
-					// 	.collect();
-
-					// let receiver_hits: BTreeSet<Option<Interaction>> = self
-					// 	.receivers
-					// 	.iter()
-					// 	.map(|receiver: &Receiver| -> Option<Vec<Interaction>> {
-					// 		match receiver {
-					// 			Receiver::Spherical(sphere) => sound.ray.intersect(sphere).map(|hits: Vec<Hit>| {
-					// 				hits
-					// 					.iter()
-					// 					.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit, amplitude: sound.amplitude })
-					// 					.collect()
-					// 			}),
-					// 		}
-					// 	})
-					// 	.flatten()
-					// 	.flatten()
-					// 	.map(Some)
-					// 	.collect();
-
 					let earliest_hit = hits
 						.iter()
 						.filter(|hit| -> bool {

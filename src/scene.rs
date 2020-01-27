@@ -188,7 +188,7 @@ impl Scene {
 
 		let mut receiver_hits: Vec<(Hit, f32)> = vec![];
 
-		trace!("Beginning simulation...");
+		info!("Beginning simulation...");
 
 		// First, emitters emit sound
 		let sounds: Vec<Sound> = self
@@ -218,7 +218,7 @@ impl Scene {
 		let mut sounds = sounds;
 
 		loop {
-			trace!("Start of tick");
+			info!("SOT with {} sounds", sounds.len());
 
 			if sounds.is_empty() {
 				break;
@@ -304,6 +304,7 @@ impl Scene {
 											intensity: new_amplitude,
 										})
 									} else {
+										trace!("Killing sound because its amplitude is too low!");
 										None
 									}
 								}
@@ -318,7 +319,7 @@ impl Scene {
 				.filter_map(|x| x)
 				.collect();
 
-			trace!("End of tick, still have {} sounds", sounds.len());
+			info!("EOT with {} sounds", sounds.len());
 		}
 
 		receiver_hits

@@ -65,9 +65,7 @@ impl Intersect<&Triangle<Vec3>> for Ray {
 
 		let t = f * ac.dot(qvec);
 
-		let normal: Vec3 = ac.cross(ab);
-
-		let unit_normal: Vec3 = normal / normal.mag();
+		let unit_normal: Vec3 = ac.cross(ab).unit();
 
 		Some(Hit {
 			time: t + self.t_offset,
@@ -95,16 +93,16 @@ impl Intersect<&Sphere> for Ray {
 
 		let record: Vec<Hit> = match thc {
 			thc if (-EPSILON..=EPSILON).contains(&thc) => {
-				let t: f32 = tca;
+				let time: f32 = tca + self.t_offset;
 
-				let p: Vec3 = self.at(t);
+				let point: Vec3 = self.at(tca);
 
-				let n: Vec3 = p - sphere.origin;
+				let unit_normal: Vec3 = (point - sphere.origin).unit();
 
 				vec![Hit {
-					time: t + self.t_offset,
-					point: self.at(t),
-					unit_normal: n / n.mag(),
+					time,
+					point,
+					unit_normal,
 				}]
 			}
 			_ => {

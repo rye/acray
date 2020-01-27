@@ -35,13 +35,56 @@ pub struct Object {
 }
 
 impl Object {
-	pub fn new(
-		geometry: Vec<Triangle<Vec3>>,
-		reflectance: f32,
-	) -> Self {
+	pub fn new(geometry: Vec<Triangle<Vec3>>, reflectance: f32) -> Self {
 		Self {
 			geometry,
 			reflectance,
+		}
+	}
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Interaction {
+	ReceiverHit { hit: Hit },
+	ObjectHit { hit: Hit, reflectance: f32 },
+}
+
+use core::cmp::Ordering;
+
+impl core::cmp::PartialOrd for Interaction {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		match (self, other) {
+			(Self::ObjectHit { hit: hit_a, .. }, Self::ObjectHit { hit: hit_b, .. }) => {
+				Some(hit_a.cmp(hit_b))
+			}
+			(Self::ReceiverHit { hit: hit_a }, Self::ReceiverHit { hit: hit_b }) => {
+				Some(hit_a.cmp(hit_b))
+			}
+			(Self::ObjectHit { hit: hit_a, .. }, Self::ReceiverHit { hit: hit_b, .. }) => {
+				Some(hit_a.cmp(hit_b))
+			}
+			(Self::ReceiverHit { hit: hit_a, .. }, Self::ObjectHit { hit: hit_b, .. }) => {
+				Some(hit_a.cmp(hit_b))
+			}
+		}
+	}
+}
+
+impl core::cmp::Eq for Interaction {}
+
+impl core::cmp::Ord for Interaction {
+	fn cmp(&self, other: &Self) -> Ordering {
+		match (self, other) {
+			(Self::ObjectHit { hit: hit_a, .. }, Self::ObjectHit { hit: hit_b, .. }) => hit_a.cmp(hit_b),
+			(Self::ReceiverHit { hit: hit_a, .. }, Self::ReceiverHit { hit: hit_b, .. }) => {
+				hit_a.cmp(hit_b)
+			}
+			(Self::ObjectHit { hit: hit_a, .. }, Self::ReceiverHit { hit: hit_b, .. }) => {
+				hit_a.cmp(hit_b)
+			}
+			(Self::ReceiverHit { hit: hit_a, .. }, Self::ObjectHit { hit: hit_b, .. }) => {
+				hit_a.cmp(hit_b)
+			}
 		}
 	}
 }
@@ -106,6 +149,8 @@ pub type Trace = Vec<Hit>;
 pub struct Sound {
 	ray: Ray,
 	trace: Trace,
+	frequency: f32,
+	amplitude: f32,
 }
 
 impl Scene {
@@ -141,6 +186,9 @@ impl Scene {
 	}
 
 	pub fn simulate(&mut self) -> Vec<Vec<f32>> {
+		use rand::Rng;
+		let mut rng = rand::thread_rng();
+
 		const SPEED_OF_SOUND: f32 = 344_f32;
 
 		trace!("Beginning simulation...");
@@ -157,8 +205,14 @@ impl Scene {
 				(0..sounds_to_emit)
 					.map(|n: usize| {
 						trace!("  Emitting sound {}", n);
+
+						let direction: Vec3 = Vec3(rng.gen(), rng.gen(), rng.gen());
+						let direction: Vec3 = direction * (SPEED_OF_SOUND / direction.mag());
+
 						Sound {
-							ray: Ray::new(emitter.origin, Vec3(1_f32, 0_f32, 0_f32)),
+							ray: Ray::new(emitter.origin, direction),
+							frequency: rng.gen_range(0_f32, 2000_f32),
+							amplitude: rng.gen_range(0_f32, 1_f32),
 							trace: vec![],
 						}
 					})
@@ -180,25 +234,38 @@ impl Scene {
 			sounds = sounds
 				.iter()
 				.map(|sound: &Sound| -> Option<Sound> {
-					let object_hits: BTreeSet<Option<Hit>> = self
+					let object_hits: BTreeSet<Option<Interaction>> = self
 						.objects
 						.iter()
-						.map(|object: &Object| -> Vec<Option<Hit>> {
+						.map(|object: &Object| -> Vec<Option<Interaction>> {
 							object
 								.geometry
 								.iter()
-								.map(|tri: &Triangle<Vec3>| -> Option<Hit> { sound.ray.intersect(tri) })
+								.map(|tri: &Triangle<Vec3>| -> Option<Interaction> {
+									sound
+										.ray
+										.intersect(tri)
+										.map(|hit: Hit| Interaction::ObjectHit {
+											hit,
+											reflectance: object.reflectance,
+										})
+								})
 								.collect()
 						})
 						.flatten()
 						.collect();
 
-					let receiver_hits: BTreeSet<Option<Hit>> = self
+					let receiver_hits: BTreeSet<Option<Interaction>> = self
 						.receivers
 						.iter()
-						.map(|receiver: &Receiver| -> Option<Vec<Hit>> {
+						.map(|receiver: &Receiver| -> Option<Vec<Interaction>> {
 							match receiver {
-								Receiver::Spherical(sphere) => sound.ray.intersect(sphere),
+								Receiver::Spherical(sphere) => sound.ray.intersect(sphere).map(|hits: Vec<Hit>| {
+									hits
+										.iter()
+										.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit })
+										.collect()
+								}),
 							}
 						})
 						.flatten()
@@ -206,40 +273,56 @@ impl Scene {
 						.map(Some)
 						.collect();
 
-					// debug!("  Object hits: {:?}", object_hits);
-					// debug!("Receiver hits: {:?}", receiver_hits);
-
-					let earliest_hit: Option<Hit> = object_hits
+					let earliest_hit = object_hits
 						.union(&receiver_hits)
-						.filter_map(|hit: &Option<Hit>| -> Option<Hit> {
-							hit.filter(|hit: &Hit| hit.time > sound.ray.t_offset)
+						.filter(|hit: &&Option<Interaction>| -> bool {
+							match hit {
+								Some(Interaction::ObjectHit { hit, .. }) => hit.time > sound.ray.t_offset,
+								Some(Interaction::ReceiverHit { hit }) => hit.time > sound.ray.t_offset,
+								None => false,
+							}
 						})
-						.collect::<Vec<Hit>>()
-						.first()
-						.cloned();
+						.take(1)
+						.next();
 
-					debug!("Earliest hit: {:?}", earliest_hit);
+					earliest_hit
+						.map(|interaction| -> Option<Sound> {
+							match interaction {
+								Some(Interaction::ObjectHit { hit, reflectance }) => {
+									let direction: Vec3 = sound.ray.direction
+										- 2_f32 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
+									let origin: Vec3 = hit.point;
+									let t_offset: f32 = hit.time;
 
-					earliest_hit.map(|hit: Hit| -> Sound {
-						let direction: Vec3 = sound.ray.direction
-							- 2_f32 * (sound.ray.direction.dot(hit.unit_normal)) * hit.unit_normal;
-						let origin: Vec3 = hit.point;
-						let t_offset: f32 = hit.time;
+									let new_ray: Ray = Ray {
+										direction,
+										origin,
+										t_offset,
+									};
 
-						let new_ray: Ray = Ray {
-							direction,
-							origin,
-							t_offset,
-						};
+									time = hit.time;
 
-						time = hit.time;
-
-						Sound {
-							ray: new_ray,
-							// TODO fix -- add trace
-							trace: sound.trace.clone(),
-						}
-					})
+									let new_amplitude: f32 = sound.amplitude * reflectance;
+									if new_amplitude >= 0.0001 {
+										Some(Sound {
+											ray: new_ray,
+											frequency: sound.frequency,
+											amplitude: new_amplitude,
+											// TODO fix -- add trace
+											trace: sound.trace.clone(),
+										})
+									} else {
+										None
+									}
+								}
+								Some(Interaction::ReceiverHit { hit, .. }) => {
+									debug!("Receiver hit: {:?}", hit);
+									None
+								}
+								None => None,
+							}
+						})
+						.flatten()
 				})
 				.filter_map(|x| x)
 				.collect();

@@ -22,8 +22,6 @@ fn main() {
 			Vec3(10.0_f32, 5_f32, -5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
 
 	let back_wall: Object = Object::new(
@@ -34,8 +32,6 @@ fn main() {
 			Vec3(-10.0_f32, 5_f32, -5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
 
 	let top_wall: Object = Object::new(
@@ -46,8 +42,6 @@ fn main() {
 			Vec3(-10.0_f32, 5_f32, 5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
 
 	let bottom_wall: Object = Object::new(
@@ -58,8 +52,6 @@ fn main() {
 			Vec3(-10.0_f32, 5_f32, -5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
 
 	let left_wall: Object = Object::new(
@@ -70,8 +62,6 @@ fn main() {
 			Vec3(-10.0_f32, -5_f32, -5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
 
 	let right_wall: Object = Object::new(
@@ -82,10 +72,7 @@ fn main() {
 			Vec3(-10.0_f32, 5_f32, -5_f32),
 		]),
 		0.8_f32,
-		0_f32,
-		0_f32,
 	);
-
 
 	let mut scene: Scene = Scene::new()
 		.emitter(emitter)

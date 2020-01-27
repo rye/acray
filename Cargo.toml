@@ -11,3 +11,4 @@ default = [ "simple_logger" ]
 rand = "~0.7.3"
 log = "~0.4.8"
 simple_logger = { version = "~1.4.0", optional = true }
+csv = "~1.1"

@@ -1,4 +1,8 @@
-use acray::{build_geometry_from_triangle_fan, Emitter, Object, Receiver, Scene, Sphere, Vec3};
+use acray::{build_geometry_from_triangle_fan, Emitter, Hit, Object, Receiver, Scene, Sphere, Vec3};
+
+use std::io::prelude::*;
+use std::io;
+use std::fs::File;
 
 fn main() {
 	#[cfg(feature = "simple_logger")]
@@ -6,7 +10,7 @@ fn main() {
 
 	let emitter: Emitter = Emitter {
 		origin: Vec3(1.0, 0.0, 0.0),
-		sounds_per_tick: 100,
+		sounds_per_tick: 100000,
 	};
 
 	let receiver: Receiver = Receiver::Spherical(Sphere::new(Vec3(0_f32, 0_f32, 0_f32), 0.1_f32));
@@ -83,7 +87,20 @@ fn main() {
 
 	println!("Starting simulation...");
 
-	let results: Vec<Vec<f32>> = scene.simulate();
+	let results: Vec<(Hit, f32)> = scene.simulate();
+	let mut file: File = File::create("results.csv").expect("Failed to open results.csv");
+
+	let mut writer = csv::Writer::from_writer(file);
+
+	writer.write_record(&["time", "amplitude"]).expect("Failed to write headers");
+
+	for (hit, amplitude) in results {
+		println!("{},{}", hit.time, amplitude);
+
+		writer.write_record(&[hit.time.to_string(), amplitude.to_string()]).expect("Failed to write record");
+	}
+
+	writer.flush().expect("Failed to flush the writer");
 
 	println!("Simulation complete!");
 }

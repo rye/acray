@@ -45,7 +45,7 @@ impl Object {
 
 #[derive(Debug, PartialEq)]
 pub enum Interaction {
-	ReceiverHit { hit: Hit },
+	ReceiverHit { hit: Hit, amplitude: f32 },
 	ObjectHit { hit: Hit, reflectance: f32 },
 }
 
@@ -57,7 +57,7 @@ impl core::cmp::PartialOrd for Interaction {
 			(Self::ObjectHit { hit: hit_a, .. }, Self::ObjectHit { hit: hit_b, .. }) => {
 				Some(hit_a.cmp(hit_b))
 			}
-			(Self::ReceiverHit { hit: hit_a }, Self::ReceiverHit { hit: hit_b }) => {
+			(Self::ReceiverHit { hit: hit_a, .. }, Self::ReceiverHit { hit: hit_b, .. }) => {
 				Some(hit_a.cmp(hit_b))
 			}
 			(Self::ObjectHit { hit: hit_a, .. }, Self::ReceiverHit { hit: hit_b, .. }) => {
@@ -144,11 +144,8 @@ fn triangle_fan_four_points_two_triangles() {
 	)
 }
 
-pub type Trace = Vec<Hit>;
-
 pub struct Sound {
 	ray: Ray,
-	trace: Trace,
 	frequency: f32,
 	amplitude: f32,
 }
@@ -185,11 +182,13 @@ impl Scene {
 		&self.sounds
 	}
 
-	pub fn simulate(&mut self) -> Vec<Vec<f32>> {
+	pub fn simulate(&mut self) -> Vec<(Hit, f32)> {
 		use rand::Rng;
 		let mut rng = rand::thread_rng();
 
 		const SPEED_OF_SOUND: f32 = 344_f32;
+
+		let mut hits: Vec<(Hit, f32)> = vec![];
 
 		trace!("Beginning simulation...");
 
@@ -198,22 +197,19 @@ impl Scene {
 			.emitters()
 			.iter()
 			.map(|emitter| -> Vec<Sound> {
-				debug!("Emitter {:?} emitting...", emitter);
-
 				let sounds_to_emit: usize = emitter.sounds_per_tick;
 
-				(0..sounds_to_emit)
-					.map(|n: usize| {
-						trace!("  Emitting sound {}", n);
+				debug!("Emitting {} sounds...", sounds_to_emit);
 
+				(0..sounds_to_emit)
+					.map(|_| {
 						let direction: Vec3 = Vec3(rng.gen(), rng.gen(), rng.gen());
 						let direction: Vec3 = direction * (SPEED_OF_SOUND / direction.mag());
 
 						Sound {
 							ray: Ray::new(emitter.origin, direction),
 							frequency: rng.gen_range(0_f32, 2000_f32),
-							amplitude: rng.gen_range(0_f32, 1_f32),
-							trace: vec![],
+							amplitude: 1_f32,
 						}
 					})
 					.collect()
@@ -263,7 +259,7 @@ impl Scene {
 								Receiver::Spherical(sphere) => sound.ray.intersect(sphere).map(|hits: Vec<Hit>| {
 									hits
 										.iter()
-										.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit })
+										.map(|hit: &Hit| Interaction::ReceiverHit { hit: *hit, amplitude: sound.amplitude })
 										.collect()
 								}),
 							}
@@ -275,10 +271,10 @@ impl Scene {
 
 					let earliest_hit = object_hits
 						.union(&receiver_hits)
-						.filter(|hit: &&Option<Interaction>| -> bool {
+						.filter(|hit| -> bool {
 							match hit {
 								Some(Interaction::ObjectHit { hit, .. }) => hit.time > sound.ray.t_offset,
-								Some(Interaction::ReceiverHit { hit }) => hit.time > sound.ray.t_offset,
+								Some(Interaction::ReceiverHit { hit, .. }) => hit.time > sound.ray.t_offset,
 								None => false,
 							}
 						})
@@ -303,20 +299,18 @@ impl Scene {
 									time = hit.time;
 
 									let new_amplitude: f32 = sound.amplitude * reflectance;
-									if new_amplitude >= 0.0001 {
+									if new_amplitude >= 0.000001 {
 										Some(Sound {
 											ray: new_ray,
 											frequency: sound.frequency,
 											amplitude: new_amplitude,
-											// TODO fix -- add trace
-											trace: sound.trace.clone(),
 										})
 									} else {
 										None
 									}
 								}
-								Some(Interaction::ReceiverHit { hit, .. }) => {
-									debug!("Receiver hit: {:?}", hit);
+								Some(Interaction::ReceiverHit { hit, amplitude }) => {
+									hits.push((*hit, *amplitude));
 									None
 								}
 								None => None,
@@ -330,14 +324,7 @@ impl Scene {
 			trace!("End of tick, still have {} sounds", sounds.len());
 		}
 
-		// Emitters emit sounds
-		// For each sound
-		// - Compute all intersections with all objects in the Scene (stored in VecDeque)
-		// - If no intersections (all None), kill the sound
-		// - Otherwise, sound "bounces off" nearest intersection, or gets read by the receiver
-		// Receivers keep a Vec of hits
-
-		vec![vec![]]
+		hits
 	}
 }
 

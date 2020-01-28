@@ -207,11 +207,7 @@ impl Scene {
 
 						let phi: f64 = (2_f64 * rng.gen_range(0_f64, 1_f64) - 1_f64).acos();
 
-						let direction: Vec3 = Vec3(
-							phi.sin() * theta.cos(),
-							phi.sin() * theta.sin(),
-							phi.cos(),
-						);
+						let direction: Vec3 = Vec3(phi.sin() * theta.cos(), phi.sin() * theta.sin(), phi.cos());
 
 						let direction: Vec3 = direction * (SPEED_OF_SOUND / direction.mag());
 

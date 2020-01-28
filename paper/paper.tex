@@ -4,6 +4,7 @@
 \usepackage{csquotes}
 \usepackage[english]{babel}
 \usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
 
 \usepackage{amsmath,amssymb}
 
@@ -22,12 +23,12 @@
 \maketitle
 
 \begin{abstract}
-  Ray tracing, a common method used in computer graphics to produce
+  \noindent Ray tracing, a common method used in computer graphics to produce
   photo-realistic images, has natural applications to the study of acoustics.
-  Sound moving through space can be modeled through particles which represent
-  the wavefront as it moves through space, and sufficient numbers of particles
-  can produce a well-resolved profile of received sound that is emitted from
-  that point.  We implement a primitive simulation system to approximate the
+  Sound moving through space can be modeled by particles which represent the
+  wavefront as it moves through space, and sufficient numbers of particles can
+  produce a well-resolved profile of received sound that is emitted from that
+  point.  We implement a primitive simulation system to approximate the
   acoustics of a modeled space and examine its resulting characteristics.
 \end{abstract}
 
@@ -60,9 +61,10 @@ WebAssembly, which allows it to be embedded within the browser rather cleanly.
 In addition, Rust's type system, specifically its rich support for generic
 functions and generic types, means that all of the algorithms with which we are
 concerned can be implemented for all types that support the underlying operation
-generics.  As a lucid example, this means that the same implementation of our
-triangle intersection algorithm can work in both two and three dimensions, as it
-makes use of the dot product which is well-defined in both dimensions.
+generics.  For a specific example example, this means that the same
+implementation of our intersection algorithm can work in both two and three
+dimensions, as it makes use of the dot product which is well-defined in both
+dimensions.
 
 \section{Algorithms}
 
@@ -123,7 +125,10 @@ complexity of checking every sound with every object has time complexity
 $\mathcal{O}(m \cdot n)$ where $m$ denotes the number of sounds and $n$ denotes
 the number of objects.  The claim that this worst-case time complexity is the
 best possible without advanced techniques needs verification, but hopefully
-intuitively makes sense.
+intuitively makes sense: in short, culling would only remove a certain
+proportion of the objects in the scene, but all objects still need to be checked
+against all sounds in order to find the earliest hit, since that is what would
+happen first.
 
 The algorithms for identifying intersections of sound (approximated by rays) and
 surfaces (approximated by triangles and spheres) are taken from relevant
@@ -156,11 +161,104 @@ but in practice might be somewhat significant.
 An alternative or more primitive approach to implementation would have rays
 stepping forward an arbitrarily small amount, checking for bounces off each
 object at each time step, and moving in accordance with a \emph{computed} speed
-of sound, rather than a constant speed of sound.
+of sound, rather than a constant speed of sound.  Such an approach would allow
+for the simulator to account for differences in localized temperature and speed
+of sound, but since in most time steps no collisions would be observed, a large
+amount of time would be wasted checking for those collisions.
 
 \section{Results}
 
+The simulated space is a $20~\mathrm{meter}~\text{long} \times
+10~\mathrm{meter}~\text{wide} \times 10~\mathrm{meter}~\text{tall}$ space, with
+a front wall, ceiling, and floor each absorbing $20\%$ of the intensity of the
+sound that they receive, a back wall absorbing $80\%$ of the sound that hits it,
+and left and right walls each absorbing $60\%$ of the sound that hits them.  The
+emitter is located $1~\mathrm{m}$ towards the front wall, and the receiver is a
+$0.1~\mathrm{m}$-radius sphere, of comparable size to the human head.  According
+to the textbook's approximation for reverberation time, the reverberation time
+($RT$) of this space would be given by \begin{align*} RT &= 0.161 \frac{V}{A}
+  \\ &= 0.161 \frac{2000~\mathrm{m^3}}{(100 + 2 \cdot 200) \cdot .20 + 100 \cdot
+    .80 + (2 \cdot 200) \cdot .60~\mathrm{m^2}} \\ &\approx
+  .767~\mathrm{s} \end{align*}
+
+When the simulation is run, a configurable number of rays---which, for the sake
+of the included figures, is $1,000,000$---is produced by the emitter,
+distributed uniformly along a unit sphere and then scaled by the speed of sound.
+The simulation is then run to completion, taking approximately $8$ iterations
+before all sounds have been absorbed, which represents approximately $8$ bounces
+off of walls before the sound is received.  The simulation subroutine then
+yields back a table containing the observed ``hit'' data (including what
+intensity was recorded) and time of the observation.  These data can then be
+plotted using a tool like gnuplot with time on the horizontal axis and intensity
+on a logarithmic scale on the vertical axis, producing the following figures.
+
+\begin{wrapfigure}{o}{0.5\textwidth}
+  \begin{center}
+    \includegraphics[width=0.48\textwidth]{results-paper}
+  \end{center}
+  \caption{Simulation results}
+  \label{unconstrained}
+\end{wrapfigure}
+
+The first figure, Figure \ref{unconstrained}, shows one run of the simulation.
+Nearly all of the sound is received within the first two seconds, but the
+logarithmic scale demonstrates how since nearly all of the sound is reflected
+around only a few times, only three orders of magnitude on intensity are lost,
+representing a loss of only $30~\mathrm{dB}$ of loudness.  Likewise, the
+intensity levels observed are quantized onto a handful of levels that can be
+seen as horizontal groupings.  Since the geometry of the space is incredibly
+simple, each intensity level corresponds to a certain, countable and finite
+number of bounces off of a surface, and there is not much variability as there
+are only six surfaces with which a sound wave can interact with.
+\begin{wrapfigure}{i}{0.5\textwidth}
+  \begin{center}
+    \includegraphics[width=0.48\textwidth]{results-paper-constrained}
+  \end{center}
+  \caption{Simulation results, constrained to $[0, 2)$ seconds}
+  \label{constrained}
+\end{wrapfigure}
+
+Figure $\ref{constrained}$ displays the same results, constrained to only the
+first two seconds on the horizontal axis.  Here various groupings of sound waves
+can be observed, the first of highest intensity from a time near zero seconds to
+a time near $0.1$ seconds, and with the second highest intensities coming
+shortly after that.  There is also a significant group of particles which
+reached the receiver with an intensity between $0.1$ and $0.2~\mathrm{W/m^2}$,
+corresponding to a bounce off the ceiling and the floor, or the front wall and
+either the floor or the ceiling.  An additional long group of particles which
+reached the receiver with roughly $0.03~\mathrm{W/m^2}$ corresponding to a
+bounce off the back wall, with varying angles of incidence corresponding to a
+longer time delay.  Adjusting the reflectance parameters of the ceiling and
+floor produces other groupings like these at different intensity levels,
+confirming how they are formed.  Indeed, most of the sound is observed to
+dissipate by $0.767$ seconds, in accordance with the prediction by the textbook.
+
+\subsection{Limitations}
+
+Our system does not support filtering different frequencies at different levels,
+however it would be trivial to extend it to work as such.  When computing the
+resulting amplitude, instead of simply multiplying by a constant, a more
+complicated calculation could be performed based on linear interpolation over
+known reflectances at known frequencies, for example.  We also assume the same
+amount is absorbed by a surface with a blow by a wave compared to a head-on
+wavefront, which is not necessarily the case in optical ray tracing.
+Furthermore, as mentioned before, our simulation only runs once with one
+wavefront, simulating the sound of a sharp change in pressure, such as a
+piercing explosion, at $120~\mathrm{dB}$.  This does not model most musical
+sounds, which would consist of a fundamental and its partial series based on the
+timbre of the instrument.  Further modeling would be required to describe how
+the timbre of transmitted sound changes as it goes through the space.
+
 \section{Conclusion}
+
+We have implemented a ray-tracing acoustics engine that produces somewhat
+realistic results in a simple but still complete example.  Our system allows for
+maximum configurability and uses relatively fast technologies so that its level
+of detail can still remain high as more complex simulations are performed.
+Indeed, ray tracing proves very promising for validating assumptions about
+spatial acoustics in the design phase rather than in the implementation phase of
+construction, which means that ray tracing has a lot of potential uses in the
+study of acoustics as it relates to architectural design.
 
 \printbibliography
 

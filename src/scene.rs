@@ -242,31 +242,27 @@ impl Scene {
 								Object::Reflector {
 									geometry,
 									reflectance,
-								} => {
-									geometry
-										.iter()
-										.map(|tri| -> Option<Interaction> {
-											sound.ray.intersect(tri).map(|hit| Interaction::ObjectHit {
-												hit,
-												reflectance: *reflectance,
-											})
+								} => geometry
+									.iter()
+									.map(|tri| -> Option<Interaction> {
+										sound.ray.intersect(tri).map(|hit| Interaction::ObjectHit {
+											hit,
+											reflectance: *reflectance,
 										})
-										.filter_map(|x| x)
-										.collect()
-								}
+									})
+									.filter_map(|x| x)
+									.collect(),
 
-								Object::Receiver { geometry } => {
-									sound
-										.ray
-										.intersect(geometry)
-										.unwrap_or(vec![])
-										.iter()
-										.map(|hit| Interaction::ReceiverHit {
-											hit: *hit,
-											intensity: sound.intensity,
-										})
-										.collect()
-								}
+								Object::Receiver { geometry } => sound
+									.ray
+									.intersect(geometry)
+									.unwrap_or(vec![])
+									.iter()
+									.map(|hit| Interaction::ReceiverHit {
+										hit: *hit,
+										intensity: sound.intensity,
+									})
+									.collect(),
 							}
 						})
 						.flatten()
@@ -297,11 +293,15 @@ impl Scene {
 
 									time = hit.time;
 
-									let new_amplitude: f64 = sound.intensity * reflectance;
-									if new_amplitude >= 0.000_000_000_001 {
+									let new_intensity: f64 = sound.intensity * reflectance;
+
+									// If the new intensity isn't super low (near the
+									// threshold of human hearing) we should probably
+									// just kill it off.
+									if new_intensity >= 0.000_000_001 {
 										Some(Sound {
 											ray: new_ray,
-											intensity: new_amplitude,
+											intensity: new_intensity,
 										})
 									} else {
 										trace!("Killing sound because its amplitude is too low!");
